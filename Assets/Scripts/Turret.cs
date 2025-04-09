@@ -3,18 +3,32 @@ using UnityEngine;
 public class Turret : MonoBehaviour
 {
     private Transform target;
+    private Enemy targetEnemy;
 
-    [Header("Attributes")]
+    [Header("General")]
     public float range = 15f;
+
+    [Header("Use Bullets (Default)")]
     public float fireRate = 1f;
     private float fireCountdown = 0f;
+    public GameObject bulletPrefab;
+
+    [Header("Use Laser")]
+    public bool useLaser = false;
+
+    public int damageOverTime = 30;
+    public float slowPct = .5f;
+
+    public LineRenderer lineRenderer;
+    public ParticleSystem impactEffect;
+    public Light impactLight;
 
     [Header("Unity Setup Fields")]
     public string enemyTag = "Enemy";
     public float turnSpeed = 10f;
     public Transform PartToRotate;
 
-    public GameObject bulletPrefab;
+    
     public Transform firePoint;
 
     public void Start()
@@ -56,8 +70,8 @@ public class Turret : MonoBehaviour
 
         if (nearestEnemy != null && shortestDistance <= range)
         {
-            Debug.Log("Target acquired: " + nearestEnemy.name);
             target = nearestEnemy.transform;
+            targetEnemy = nearestEnemy.GetComponent<Enemy>();
         }
         else
         {
@@ -72,32 +86,73 @@ public class Turret : MonoBehaviour
     {
         if (target == null)
         {
-            UpdateTarget();
+            if (useLaser)
+            {
+                if (lineRenderer.enabled) {
+                    lineRenderer.enabled = false;
+                    impactEffect.Stop();
+                    lineRenderer.enabled = false;
+                }
+            }
             return;
         }
+            if (PartToRotate == null)
+            {
+                Debug.LogError("PartToRotate is not assigned!");
+                return;
+            }
 
-        if (PartToRotate == null)
-        {
-            Debug.LogError("PartToRotate is not assigned!");
-            return;
-        }
+            // Rotate turret toward target
+            LockOnTarget();
 
-        // Rotate turret toward target
+            if (useLaser)
+            {
+                Laser();
+            }
+            else
+            {
+                // Shooting logic
+                fireCountdown -= Time.deltaTime;
+                if (fireCountdown <= 0f)
+                {
+                    Shoot();
+                    fireCountdown = 1f / fireRate;
+                }
+            fireCountdown -= Time.deltaTime;
+            }
+    }
+
+        void LockOnTarget()
+    {
         Vector3 dir = target.position - transform.position;
+        //Vector3 dir = firePoint.position - target.position;
         Quaternion lookRotation = Quaternion.LookRotation(dir);
         Vector3 rotation = Quaternion.Lerp(PartToRotate.rotation, lookRotation, Time.deltaTime * turnSpeed).eulerAngles;
         PartToRotate.rotation = Quaternion.Euler(0f, rotation.y, 0f);
-
-        // Shooting logic
-        fireCountdown -= Time.deltaTime;
-        if (fireCountdown <= 0f)
-        {
-            Shoot();
-            fireCountdown = 1f / fireRate;
-        }
     }
 
+    void Laser()
+    {
+        targetEnemy.TakeDamage(damageOverTime * Time.deltaTime);
+        targetEnemy.Slow(slowPct);
 
+        if (!lineRenderer.enabled)
+        {
+            lineRenderer.enabled = true;
+            impactEffect.Play();
+            impactLight.enabled = true;
+        }
+
+        lineRenderer.SetPosition(0, firePoint.position);
+        lineRenderer.SetPosition(1, target.position);
+
+        Vector3 dir = firePoint.position - target.position;
+
+        impactEffect.transform.position = target.position + dir.normalized;
+
+        //impactEffect.transform.position = Quaternion.LookRotation(dir);
+        //Vector3 dir = firePoint.position - target.position;
+    }
 
     void Shoot()
     {

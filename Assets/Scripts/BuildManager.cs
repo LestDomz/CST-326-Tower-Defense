@@ -18,55 +18,49 @@ public class BuildManager : MonoBehaviour
     public GameObject missileLauncherPrefab;
 
     public GameObject buildEffect;
+    public GameObject sellEffect;
 
     private TurretBlueprint TurretToBuild;
+    private Node selectedNode;
+
+    public NodeUI nodeUI;
 
     public bool CanBuild { get { return TurretToBuild != null; } }
     public bool HasMoney { get { return PlayerStats.Money >= TurretToBuild.cost; } }
 
-    public GameObject GetTurretToBuild()  // 🔥 Fix: Added this method to return prefab
+    /*public GameObject GetTurretToBuild()  // 🔥 Fix: Added this method to return prefab
     {
         return TurretToBuild?.prefab;
-    }
+    }*/
 
-    public void BuildTurretOn(Node node)
+    public void SelectNode(Node node)
     {
-        if (TurretToBuild == null)
+        if (selectedNode == node)
         {
-            Debug.LogError("No turret selected!");
+            DeselectNode();
             return;
         }
 
-        Debug.Log("Current Money: " + PlayerStats.Money + " | Turret Cost: " + TurretToBuild.cost);
+        selectedNode = node;
+        TurretToBuild = null;
 
-        if (PlayerStats.Money < TurretToBuild.cost)
-        {
-            Debug.Log("Not enough money to build that!");
-            return;
-        }
-
-        PlayerStats.Money -= TurretToBuild.cost;
-
-        GameObject turret = Instantiate(TurretToBuild.prefab, node.GetBuildPosition(), Quaternion.identity);
-        node.turret = turret;
-
-        GameObject effect = (GameObject)Instantiate(buildEffect, node.GetBuildPosition(), Quaternion.identity);
-        Destroy(effect, 5f);
-
-        Debug.Log("Turret Built! Money left: " + PlayerStats.Money);
+        nodeUI.SetTarget(node);
     }
 
+    public void DeselectNode()
+    {
+        selectedNode = null;
+        nodeUI.Hide();
+    }
 
     public void SelectTurretToBuild(TurretBlueprint turret)
     {
-        if (turret == null)
-        {
-            Debug.LogError("Attempted to select a null turret!");
-            return;
-        }
-
         TurretToBuild = turret;
-        Debug.Log("Turret Selected: " + TurretToBuild.prefab.name + " | Cost: " + TurretToBuild.cost);
+        DeselectNode();
     }
 
+    public TurretBlueprint GetTurretToBuild()
+    {
+        return TurretToBuild;
+    }
 }

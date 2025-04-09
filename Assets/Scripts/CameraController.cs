@@ -13,11 +13,11 @@ public class CameraController : MonoBehaviour
     void Update()
     {
 
-        /*if (GameManager.GameIsOver)
+        if (GameManager.GameIsOver)
         {
             this.enabled = false;
             return;
-        }*/
+        }
 
         if (Input.GetKey("w") || Input.mousePosition.y >= Screen.height - panBorderThickness)
         {
